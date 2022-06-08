@@ -1,0 +1,51 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body>
+    <div class="container">
+        <main role="main" class="pb-3">
+            <div class="display-flex">
+                <div class="email-container">
+                    @RenderBody()
+                </div>
+            </div>          
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted bg-info">
+        <div class="container text-center text-white-50">
+            <div class="email-container">
+                Northwind
+            </div>
+            
+        </div>
+    </footer>
+</body>
+</html>
+
+<style>
+    .email-container {
+        border-radius: 6px;
+        border-top : 2px solid #007865;
+        border-bottom : 2px solid #007865;
+        max-width : 400px;
+        margin : auto;
+        padding : 5px;
+    }
+
+    .display-flex {
+        display:flex;
+        flex-direction: column;
+        justify-content :center;
+        min-width: 100%;
+    }
+
+    .container, row {
+        min-width : 100%;
+    }
+</style>
