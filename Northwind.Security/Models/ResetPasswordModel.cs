@@ -20,6 +20,7 @@ namespace Northwind.Security.Models
         public string ConfirmNewPassword { get; set; }
 
         public string Token { get; set; }
+        public string FirstName { get; set; }    
 
 
         // From Oauth

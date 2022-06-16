@@ -83,7 +83,8 @@ namespace Northwind.Security.Areas.Identity.Services
                     // Create activation url
                     string activationUrl = 
                         $"{_urls.GetSection("BaseUrl").Value}{_urls.GetSection("ActivateAccountUrl").Value}" +
-                        $"&firstname={applicationUser.FirstName}&lastname={applicationUser.LastName}" +
+                        $"&firstname={applicationUser.FirstName}" +
+                        $"&lastname={applicationUser.LastName}" +
                         $"useridentifier={encodedUsername}" +
                         $"&token={encodedEmailToken}" +
                         $"&response_type={registerModel.ResponseType}" +
@@ -192,7 +193,9 @@ namespace Northwind.Security.Areas.Identity.Services
 
             string recoveryUrl = 
                 $"{_urls.GetSection("BaseUrl").Value}{_urls.GetSection("RecoverPasswordUrl").Value}" +
-                $"useridentifier={encodedUsername}&token={encodedToken}" +
+                $"user_identifier={encodedUsername}&token={encodedToken}" +
+                $"firstname={applicationUser.FirstName}" +
+                $"lastname={applicationUser.LastName}" +
                 $"&response_type={forgotPasswordModel.ResponseType}" +
                 $"&client_id={forgotPasswordModel.ClientId}" +
                 $"&redirect_uri={forgotPasswordModel.RedirectUri}" +

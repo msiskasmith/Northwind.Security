@@ -163,67 +163,87 @@ namespace Northwind.Security.Controllers
             return View(forgotPasswordModel);
         }
 
-        public IActionResult ResetPassword()
+        public IActionResult ResetPassword([FromQuery] string user_identifier
+            , string token
+            , string firstname
+            , string response_type
+            , string client_id
+            , string redirect_uri
+            , string scope
+            , string state)
         {
-            return View();
+            ResetPasswordModel resetPasswordModel = new()
+            {
+                UserIdentifier = user_identifier,
+                Token = token,
+                FirstName = firstname,
+                ResponseType = response_type,
+                ClientId = client_id,
+                RedirectUri = redirect_uri,
+                Scope = scope,
+                State = state
+            };
+
+            return View(resetPasswordModel);
         }
 
-        //[HttpPost]
-        //public async Task<IActionResult> ResetPassword(ResetPasswordModel resetPasswordModel)
-        //{
-        //    if (ModelState.IsValid)
-        //    {
-        //        var client = _httpClientFactory.CreateClient("authentication");
+        [HttpPost]
+        public async Task<IActionResult> ResetPassword(ResetPasswordModel resetPasswordModel)
+        {
+            if (ModelState.IsValid)
+            {
+                var result = await _authenticationService.ResetPassword(resetPasswordModel);
 
-        //        var response = await client.PostAsJsonAsync($"Authenticate/ResetPassword"
-        //            , resetPasswordModel);
+                if (result.IsSuccessful)
+                {
+                    return Redirect($"/login?response_type={resetPasswordModel.ResponseType}&" +
+                        $"client_id={resetPasswordModel.ClientId}" +
+                        $"redirect_uri={resetPasswordModel.RedirectUri}" +
+                        $"scope={resetPasswordModel.Scope}" +
+                        $"state={resetPasswordModel.State}");
+                }
 
-        //        if (response.IsSuccessStatusCode == false)
-        //        {
-        //            NotifyUser(response.Content.ReadAsStringAsync().Result,
-        //            "Password Reset Failed", NotificationType.error);
+                ModelState.AddModelError("error", result.Message);
 
-        //            CreateObjectCookie("ResetPasswordModelCookie", resetPasswordModel);
+                return View(resetPasswordModel);
+            }
 
-        //            return Redirect("/Account/ResetPassword");
-        //        }
-        //    }
+            return View(resetPasswordModel);
+        }
 
-        //    return View(resetPasswordModel);
-        //}
-
-        public IActionResult ActivateAccount()
+        public IActionResult ActivateAccount([FromQuery] string user_identifier
+            , string token
+            , string firstname
+            , string response_type
+            , string client_id
+            , string redirect_uri
+            , string scope
+            , string state)
         {
             ActivateAccountModel activateAccountModel = new()
             {
-                FirstName = "Smith"
+                UserIdentifier = user_identifier,
+                Token = token,
+                FirstName = firstname,
+                ResponseType = response_type,
+                ClientId = client_id,
+                RedirectUri = redirect_uri,
+                Scope = scope,
+                State = state
             };
 
             return View(activateAccountModel);
         }
 
-        //[HttpPost]
-        //public async Task<IActionResult> ActivateAccount([FromBody] ActivateAccountModel activateAccountModel)
-        //{
-        //    if (ModelState.IsValid)
-        //    {
-        //        var client = _httpClientFactory.CreateClient("authentication");
+        [HttpPost]
+        public async Task<IActionResult> ActivateAccount([FromBody] ActivateAccountModel activateAccountModel)
+        {
+            if (ModelState.IsValid)
+            {
+                
+            }
 
-        //        var response = await client.PostAsJsonAsync($"Authenticate/ActivateAccount"
-        //            , activateAccountModel);
-
-        //        if (response.IsSuccessStatusCode == false)
-        //        {
-        //            NotifyUser(response.Content.ReadAsStringAsync().Result,
-        //            "Account Activation Failed", NotificationType.error);
-
-        //            CreateObjectCookie("ActivateAccountModelCookie", activateAccountModel);
-
-        //            return Redirect("/Account/ActivateAccount");
-        //        }
-        //    }
-
-        //    return View(activateAccountModel);
-        //}
+            return View(activateAccountModel);
+        }
     }
 }
