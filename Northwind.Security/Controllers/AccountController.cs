@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
-
+using Northwind.Portal.Models;
 using Northwind.Security.Areas.Identity.Data;
 using Northwind.Security.Areas.Identity.Services;
 using Northwind.Security.Authentication.JwtFeatures;
@@ -141,7 +141,7 @@ namespace Northwind.Security.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordModel forgotPasswordModel)
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordModel forgotPasswordModel)
         {
             if (ModelState.IsValid)
             {
@@ -196,11 +196,14 @@ namespace Northwind.Security.Controllers
 
                 if (result.IsSuccessful)
                 {
-                    return Redirect($"/login?response_type={resetPasswordModel.ResponseType}&" +
-                        $"client_id={resetPasswordModel.ClientId}" +
-                        $"redirect_uri={resetPasswordModel.RedirectUri}" +
-                        $"scope={resetPasswordModel.Scope}" +
-                        $"state={resetPasswordModel.State}");
+
+                    NotifyUser("Password reset succesfully, Please enter new password to login", "Password Reset", NotificationType.success);
+
+                    return Redirect($"/Account/Login?response_type={resetPasswordModel.ResponseType}" +
+                        $"&client_id={resetPasswordModel.ClientId}" +
+                        $"&redirect_uri={resetPasswordModel.RedirectUri}" +
+                        $"&scope={resetPasswordModel.Scope}" +
+                        $"&state={resetPasswordModel.State}");
                 }
 
                 ModelState.AddModelError("error", result.Message);
@@ -236,11 +239,25 @@ namespace Northwind.Security.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> ActivateAccount([FromBody] ActivateAccountModel activateAccountModel)
+        public async Task<IActionResult> ActivateAccount(ActivateAccountModel activateAccountModel)
         {
             if (ModelState.IsValid)
             {
-                
+                var result = await _authenticationService.ActivateAccount(activateAccountModel);
+
+                if (result.IsSuccessful)
+                {
+                    NotifyUser("Account activated succesfully, Please login to access your account", "Account Activated", NotificationType.success);
+
+                    return Redirect($"/Account/Login?response_type={activateAccountModel.ResponseType}" +
+                        $"&client_id={activateAccountModel.ClientId}" +
+                        $"&redirect_uri={activateAccountModel.RedirectUri}" +
+                        $"&scope={activateAccountModel.Scope}" +
+                        $"&state={activateAccountModel.State}");
+                }
+
+                ModelState.AddModelError("error", result.Message);
+                return View(activateAccountModel);  
             }
 
             return View(activateAccountModel);

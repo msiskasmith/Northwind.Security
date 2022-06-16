@@ -14,6 +14,7 @@ namespace Northwind.Security.Models
         [Required(ErrorMessage = "Password is required")]
         [MinLength(6, ErrorMessage = "Password cannot be less than 6 characters")]
         [MaxLength(50, ErrorMessage = "Password cannot be more than 50 characters.")]
+        [DataType(DataType.Password)]
         public string Password { get; set; }
 
         // From Oauth
