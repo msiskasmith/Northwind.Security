@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Northwind.Security.Areas.Identity.Data;
 using Northwind.Security.Helpers;
 using Northwind.Security.Models;
@@ -23,12 +24,14 @@ namespace Northwind.Security.Areas.Identity.Services
         private readonly IConfigurationSection _mailFrom;
         private readonly IMailService _mailService;
         private readonly IHostEnvironment _hostEnvironment;
+        private readonly ILogger<AuthenticationService> _logger;
 
         public AuthenticationService(UserManager<ApplicationUser> userManager
             , NorthwindSecurityContext northwindSecurityContext
             , IConfiguration configuration
             , IMailService mailService
-            , IHostEnvironment hostEnvironment)
+            , IHostEnvironment hostEnvironment
+            , ILogger<AuthenticationService> logger)
         {
             _userManager = userManager;
             _northwindSecurityContext = northwindSecurityContext;
@@ -37,6 +40,7 @@ namespace Northwind.Security.Areas.Identity.Services
             _mailFrom = _configuration.GetSection("MailFrom");
             _mailService = mailService;
             _hostEnvironment = hostEnvironment;
+            _logger = logger;
         }
         public async Task<ProcessedResponse> Register(RegisterModel registerModel)
         {
@@ -51,7 +55,7 @@ namespace Northwind.Security.Areas.Identity.Services
                     LastName = registerModel.LastName
                 };
 
-                var generatedPassword = GeneratePassword();
+                var generatedPassword = GenerateRandomString();
 
                 var result = await _userManager.CreateAsync(applicationUser, generatedPassword);
 
@@ -70,13 +74,23 @@ namespace Northwind.Security.Areas.Identity.Services
                 {
                     var confirmEmailToken = await _userManager.GenerateEmailConfirmationTokenAsync(applicationUser);
 
-                    var encodedEmailToken = Encoding.UTF8.GetBytes(confirmEmailToken);
+                    // Encrypt token
+                    var encodedEmailToken = EncodeString(confirmEmailToken);
 
-                    var validEmailToken = WebEncoders.Base64UrlEncode(encodedEmailToken);
+                    // Encrypt email
+                    var encodedUsername = EncodeString(registerModel.Username);   
 
+                    // Create activation url
                     string activationUrl = 
                         $"{_urls.GetSection("BaseUrl").Value}{_urls.GetSection("ActivateAccountUrl").Value}" +
-                        $"username={applicationUser.UserName}&token={validEmailToken}";
+                        $"&firstname={applicationUser.FirstName}&lastname={applicationUser.LastName}" +
+                        $"useridentifier={encodedUsername}" +
+                        $"&token={encodedEmailToken}" +
+                        $"&response_type={registerModel.ResponseType}" +
+                        $"&client_id={registerModel.ClientId}" +
+                        $"&redirect_uri={registerModel.RedirectUri}" +
+                        $"&scope={registerModel.Scope}" +
+                        $"&state={registerModel.State}";
 
                     var templatePath = Path.Combine(_hostEnvironment.ContentRootPath, "EmailTemplates"
                         , "ActivateAccount.cshtml");
@@ -88,8 +102,6 @@ namespace Northwind.Security.Areas.Identity.Services
                         FirstName = applicationUser.FirstName,
                         LastName = applicationUser.LastName,
                         Url = activationUrl,
-                        Password = generatedPassword
-
                     };
 
                     //Prevent from creating account if confirmation email is not sent
@@ -106,54 +118,86 @@ namespace Northwind.Security.Areas.Identity.Services
                     transaction.Rollback();
                     return ResponseProcessor.GetValidationErrorResponse(sendEmail.Message);
                 }
-
                 
                 transaction.Rollback();
 
-                // Should be logged  ot sent to user
                 var addRoleErrors = string.Join(";", addRole.Errors.Select(x => x.Description));
-                return ResponseProcessor.GetValidationErrorResponse(addRoleErrors);
+
+                return ResponseProcessor.GetValidationErrorResponse("User was not added, Please contact your System Administrator");
 
             }
         }
-        public async Task<ProcessedResponse> ActivateAccount(string username, string token)
+        public async Task<ProcessedResponse> ActivateAccount(ActivateAccountModel activateAccountModel)
         {
-            var applicationUser = await _userManager.FindByNameAsync(username);
+            // Decode the username
+            var username = DecodeString(activateAccountModel.UserIdentifier);
+
+            // Decode token
+            var token = DecodeString(activateAccountModel.Token);
+
+            // Find user by username
+            var applicationUser = await _userManager.FindByEmailAsync(username);
 
             if (applicationUser == null)
             {
                 return ResponseProcessor.GetRecordNotFoundResponse("The user does not exist.");
-            }
+            }          
 
-            var decodedToken = WebEncoders.Base64UrlDecode(token);
-            var decodedTokenString = Encoding.UTF8.GetString(decodedToken);
-
-            var result = await _userManager.ConfirmEmailAsync(applicationUser, decodedTokenString);
-
-            if (result.Succeeded)
+            // Start transaction
+            using (var transaction = _northwindSecurityContext.Database.BeginTransaction())
             {
-                await _userManager.RemoveFromRoleAsync(applicationUser, "UnActivatedUser");
+                // Confirm email
+                var result = await _userManager.ConfirmEmailAsync(applicationUser, token);
 
-                await _userManager.AddToRoleAsync(applicationUser, "User");
+                if (result.Succeeded)
+                {
+                    // Reset password with user password
+                    var passwordResetToken = await _userManager.GeneratePasswordResetTokenAsync(applicationUser);
 
-                return ResponseProcessor.GetSuccessResponse();
+                    await _userManager.ResetPasswordAsync(
+                    applicationUser, passwordResetToken, activateAccountModel.Password);
+
+                    // Change user role
+                    await _userManager.RemoveFromRoleAsync(applicationUser, "UnActivatedUser");
+
+                    await _userManager.AddToRoleAsync(applicationUser, "User");
+
+                    transaction.Commit();
+                    // Send success message
+                    return ResponseProcessor.GetSuccessResponse();
+                }
+
+                transaction.Rollback();
             }
-
+            
             return ResponseProcessor.GetValidationErrorResponse("Account activation failed, please try again");
         }
 
-        public async Task<ProcessedResponse> SendPasswordRecoveryLink(ApplicationUser applicationUser
-            , ForgotPasswordModel model)
+        public async Task<ProcessedResponse> SendPasswordRecoveryLink(ForgotPasswordModel forgotPasswordModel)
         {
+            var applicationUser = await _userManager.FindByEmailAsync(forgotPasswordModel.Username);
+
+            if(applicationUser == null)
+            {
+                return ResponseProcessor.GetValidationErrorResponse("The user does not exist.");
+            }
+
             var token = await _userManager.GeneratePasswordResetTokenAsync(applicationUser);
 
-            var encodedToken = Encoding.UTF8.GetBytes(token);
+            // Encode token
+            var encodedToken = EncodeString(token);
 
-            var validToken = WebEncoders.Base64UrlEncode(encodedToken);
+            // Decode Token
+            var encodedUsername = EncodeString(applicationUser.UserName);    
 
             string recoveryUrl = 
                 $"{_urls.GetSection("BaseUrl").Value}{_urls.GetSection("RecoverPasswordUrl").Value}" +
-                $"username={applicationUser.UserName}&token={validToken}";
+                $"useridentifier={encodedUsername}&token={encodedToken}" +
+                $"&response_type={forgotPasswordModel.ResponseType}" +
+                $"&client_id={forgotPasswordModel.ClientId}" +
+                $"&redirect_uri={forgotPasswordModel.RedirectUri}" +
+                $"&scope={forgotPasswordModel.Scope}" +
+                $"&state={forgotPasswordModel.State}";
 
             var templatePath = Path.Combine(_hostEnvironment.ContentRootPath, "EmailTemplates", "RecoverPassword.cshtml");
 
@@ -172,15 +216,21 @@ namespace Northwind.Security.Areas.Identity.Services
             return result;
         }
 
-        public async Task<ProcessedResponse> ResetPassword(ApplicationUser applicationUser
-            , ResetPasswordModel resetPasswordModel)
+        public async Task<ProcessedResponse> ResetPassword(ResetPasswordModel resetPasswordModel)
         {
-            var decodedToken = WebEncoders.Base64UrlDecode(resetPasswordModel.Token);
 
-            var decodedTokenString = Encoding.UTF8.GetString(decodedToken);
+            var token = DecodeString(resetPasswordModel.Token);
+            var username = DecodeString(resetPasswordModel.UserIdentifier);
+
+            var applicationUser = await _userManager.FindByEmailAsync(username);
+
+            if(applicationUser is null)
+            {
+                return ResponseProcessor.GetValidationErrorResponse("User does not exist");
+            }
 
             var result = await _userManager.ResetPasswordAsync(
-                applicationUser, decodedTokenString, resetPasswordModel.NewPassword);
+                applicationUser, token, resetPasswordModel.NewPassword);
 
             if (result.Succeeded)
             {
@@ -191,9 +241,27 @@ namespace Northwind.Security.Areas.Identity.Services
                 "Password was not reset, please try again or contact your system administrator");
         }
 
-        public string GeneratePassword()
+        public string EncodeString(string stringToEncode)
         {
-            const string validPasswordCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+            var result = Encoding.UTF8.GetBytes(stringToEncode);
+
+            var urlSafeString = WebEncoders.Base64UrlEncode(result);
+
+            return urlSafeString;
+        }
+
+        public string DecodeString(string stringToDecode)
+        {
+            var result = WebEncoders.Base64UrlDecode(stringToDecode);
+
+            var decodedString = Encoding.UTF8.GetString(result);
+
+            return decodedString;
+        }
+
+        public string GenerateRandomString(int stringLength = 10)
+        {
+            const string validCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
 
             StringBuilder stringBuilder = new StringBuilder();
 
@@ -201,11 +269,9 @@ namespace Northwind.Security.Areas.Identity.Services
 
             var i = 0;
 
-            var length = 10;
-
-            while (i < length--)
+            while (i < stringLength--)
             {
-                stringBuilder.Append(validPasswordCharacters[randomNumber.Next(validPasswordCharacters.Length)]);
+                stringBuilder.Append(validCharacters[randomNumber.Next(validCharacters.Length)]);
             }
 
             return stringBuilder.ToString();

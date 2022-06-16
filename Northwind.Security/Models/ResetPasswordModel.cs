@@ -2,10 +2,10 @@
 
 namespace Northwind.Security.Models
 {
-    public class ResetPasswordModel
+    public class ResetPasswordModel : BaseModel
     {
         // Username disabled input field
-        public string Username { get; set; }
+        public string UserIdentifier { get; set; }
 
         [MinLength(6, ErrorMessage = "New Password cannot be less than 6 characters")]
         [MaxLength(50, ErrorMessage = "New Password cannot be more than 50 characters.")]
@@ -20,5 +20,13 @@ namespace Northwind.Security.Models
         public string ConfirmNewPassword { get; set; }
 
         public string Token { get; set; }
+
+
+        // From Oauth
+        public string ResponseType { get; set; }
+        public string ClientId { get; set; }
+        public string RedirectUri { get; set; }
+        public string Scope { get; set; }
+        public string State { get; set; }
     }
 }

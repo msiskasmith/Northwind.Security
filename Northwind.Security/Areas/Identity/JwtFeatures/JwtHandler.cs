@@ -15,21 +15,18 @@ namespace Northwind.Security.Authentication.JwtFeatures
     {
 		private readonly IConfiguration _configuration;
 		private readonly IConfigurationSection _jwtSettings;
-		private readonly IConfigurationSection _googleSettings;
 		private readonly UserManager<ApplicationUser> _userManager;
 		public JwtHandler(IConfiguration configuration, UserManager<ApplicationUser> userManager)
 		{
 			_userManager = userManager;
 			_configuration = configuration;
-			_jwtSettings = _configuration.GetSection("JWT");
-			_googleSettings = _configuration.GetSection("Google");
+			_jwtSettings = _configuration.GetSection("AuthSettings");
 		}
 
 		private SigningCredentials GetSigningCredentials()
 		{
-			var key = Encoding.ASCII.GetBytes(_jwtSettings.GetSection("Secret").Value);
+			var key = Encoding.ASCII.GetBytes(_jwtSettings["Key"]);
 			var secret = new SymmetricSecurityKey(key);
-
 			return new SigningCredentials(secret, SecurityAlgorithms.HmacSha256Signature);
 		}
 
@@ -51,27 +48,32 @@ namespace Northwind.Security.Authentication.JwtFeatures
 			return claims;
 		}
 
-		public async Task<string> GenerateToken(ApplicationUser applicationUser)
+		public string GenerateToken()
 		{
 			var signingCredentials = GetSigningCredentials();
-			var claims = await GetClaims(applicationUser);
-			var tokenOptions = GenerateTokenOptions(signingCredentials, claims);
+			var tokenOptions = GenerateTokenOptions(signingCredentials);
 			var token = new JwtSecurityTokenHandler().WriteToken(tokenOptions);
 
 			return token;
 		}
 
-		private JwtSecurityToken GenerateTokenOptions(SigningCredentials signingCredentials, List<Claim> claims)
+		private JwtSecurityToken GenerateTokenOptions(SigningCredentials signingCredentials)
 		{
 			var tokenOptions = new JwtSecurityToken(
-				issuer: _jwtSettings.GetSection("ValidIssuer").Value,
-				audience: _jwtSettings.GetSection("ValidAudience").Value,
-				claims: claims,
+				issuer: _jwtSettings["ValidIssuer"],
+				audience: _jwtSettings["ValidAudience"],
 				expires: DateTime.Now.AddMinutes(Convert.ToDouble(_jwtSettings.GetSection("ExpiryInMinutes").Value)),
 				signingCredentials: signingCredentials
 				);
 
 			return tokenOptions;
+		}
+
+		public async Task<IEnumerable<Claim>> GenerateClaims(ApplicationUser applicationUser)
+        {
+			var claims = await GetClaims(applicationUser);
+
+			return claims;
 		}
 	}
 }

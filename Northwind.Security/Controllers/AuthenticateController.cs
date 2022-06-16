@@ -42,7 +42,7 @@ namespace Northwind.WebAPI.Controllers
 
                 if (result)
                 {
-                    var token = await _jwtHandler.GenerateToken(applicationUser);
+                    var token = _jwtHandler.GenerateToken();
 
                     return Ok(new { token = token });
                 }
@@ -54,6 +54,9 @@ namespace Northwind.WebAPI.Controllers
         }
 
         [HttpPost]
+
+
+        [HttpPost]
         [Route("register")]
         public async Task<IActionResult> Register([FromBody] RegisterModel registerModel)
         {
@@ -62,6 +65,7 @@ namespace Northwind.WebAPI.Controllers
             if (applicationUser is null)
             {
                 var result = await _authenticationService.Register(registerModel);
+
                 if (result.IsSuccessful)
                 {
                     return Ok("Account registered succesfully");
@@ -78,15 +82,12 @@ namespace Northwind.WebAPI.Controllers
         [HttpPost("activateaccount")]
         public async Task<IActionResult> ActivateAccount([FromBody] ActivateAccountModel activateAccountModel)
         {
-            if (string.IsNullOrWhiteSpace(activateAccountModel.Username) 
-                    || string.IsNullOrWhiteSpace(activateAccountModel.Token))
+            if(activateAccountModel.Password != activateAccountModel.ConfirmPassword)
             {
-                return NotFound();
+                return BadRequest("Please ensure that the Password and Password Confirmation are the same");
             }
-                
 
-            var result = await _authenticationService.ActivateAccount(activateAccountModel.Username
-                , activateAccountModel.Token);
+            var result = await _authenticationService.ActivateAccount(activateAccountModel);
 
             if (result.IsSuccessful)
             {
@@ -131,7 +132,7 @@ namespace Northwind.WebAPI.Controllers
                 return NoContent();
             }
 
-            var result = await _authenticationService.SendPasswordRecoveryLink(applicationUser, forgotPasswordModel);
+            var result = await _authenticationService.SendPasswordRecoveryLink(applicationUser);
 
             if (result.IsSuccessful)
             {
@@ -145,19 +146,13 @@ namespace Northwind.WebAPI.Controllers
         [Route("resetpassword")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordModel resetPasswordModel)
         {
-            var applicationUser = await _userManager.FindByEmailAsync(resetPasswordModel.Username);
-
-            if (applicationUser is null)
-            {
-                return NoContent();
-            }
 
             if (resetPasswordModel.NewPassword != resetPasswordModel.ConfirmNewPassword)
             {
                 return BadRequest("Your new passwords do not match");
             }
 
-            var result = await _authenticationService.ResetPassword(applicationUser, resetPasswordModel);
+            var result = await _authenticationService.ResetPassword(resetPasswordModel);
 
             if (result.IsSuccessful)
             {

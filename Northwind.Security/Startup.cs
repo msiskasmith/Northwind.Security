@@ -30,14 +30,19 @@ namespace Northwind.Security
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddControllersWithViews();
+            services.AddControllersWithViews()
+                .AddRazorRuntimeCompilation();
 
             services.AddRazorPages();
 
+            services.AddHttpClient();
+            services.AddHttpClient("authentication", (sp, c) =>
+            {
+                c.BaseAddress = new Uri(Configuration.GetValue<string>("apiLocation"));
+            });
+
             services.AddScoped<IAuthenticationService, AuthenticationService>();
-
             services.AddScoped<IMailService, MailService>();
-
             services.AddScoped<JwtHandler>();
 
             services.AddDbContext<NorthwindSecurityContext>(options =>
@@ -73,7 +78,10 @@ namespace Northwind.Security
                             var userManager = context.HttpContext.RequestServices.GetRequiredService<UserManager<ApplicationUser>>();
                             var user = userManager.GetUserAsync(context.HttpContext.User);
 
-                            if (user is null) context.Fail("Un Authorized ");
+                            if (user is null)
+                            {
+                                context.Fail("UnAuthorized ");
+                            }                              
                             return Task.CompletedTask;
                         }
                     };
@@ -90,9 +98,6 @@ namespace Northwind.Security
                     options.Cookie.SameSite = SameSiteMode.None;
                     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
                     options.Cookie.IsEssential = true;
-
-                    //options.LoginPath = "/Identity/Account/Login";
-                    //options.AccessDeniedPath = "/Identity/Account/AccessDenied";
                     options.SlidingExpiration = true;
                 });
 

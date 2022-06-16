@@ -7,8 +7,9 @@ namespace Northwind.Security.Areas.Identity.Services
     public interface IAuthenticationService
     {
         public Task<ProcessedResponse> Register(RegisterModel registerModel);
-        public Task<ProcessedResponse> SendPasswordRecoveryLink(ApplicationUser applicationUser, ForgotPasswordModel model);
-        public Task<ProcessedResponse> ResetPassword(ApplicationUser applicationUser, ResetPasswordModel model);
-        public Task<ProcessedResponse> ActivateAccount(string username, string token);
+        public Task<ProcessedResponse> SendPasswordRecoveryLink(ForgotPasswordModel forgotPasswordModel);
+        public Task<ProcessedResponse> ResetPassword(ResetPasswordModel resetPasswordModel);
+        public Task<ProcessedResponse> ActivateAccount(ActivateAccountModel activateAccountModel);
+        public string GenerateRandomString(int stringLength = 10);
     }
 }

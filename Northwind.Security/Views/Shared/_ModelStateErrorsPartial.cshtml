@@ -1,0 +1,7 @@
+﻿
+@if(@ViewContext.ViewData.ModelState.Any(x => x.Value.Errors.Any()))
+    {
+        <div class="alert alert-danger fade show" role="alert">
+            @Html.ValidationSummary()
+        </div>
+    }

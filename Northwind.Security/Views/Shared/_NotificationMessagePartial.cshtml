@@ -1,0 +1,34 @@
+﻿@using Microsoft.AspNetCore.Http
+
+@{
+    var notificationMessageCookie = @Context.Request.Cookies["NotificationMessageViewModel"];
+    var notificationMessageViewModel = Html.Raw(notificationMessageCookie);
+}
+
+<script>
+    
+       let notificationMessageViewModel = @notificationMessageViewModel;
+
+       if(notificationMessageViewModel != null){
+
+        document.cookie = "NotificationMessageViewModel=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+
+        if(notificationMessageViewModel.NotificationProvider == "sweetAlert") 
+        {
+            swal({
+                title: notificationMessageViewModel.NotificationTitle,
+                text: notificationMessageViewModel.NotificationMessage,
+                type: notificationMessageViewModel.NotificationType
+            });
+        }
+        else 
+        {
+            toastr[notificationMessage.type](notificationMessage.message
+                , notificationMessage.title);
+        }
+    }   
+</script>
+
+
+
+
