@@ -73,8 +73,6 @@ namespace Northwind.Security.Controllers
                         return Redirect($"{loginModel.RedirectUri}{query.ToString()}");
                     }
 
-                    // Change to redirect to login
-
                     ModelState.AddModelError("error", "Please enter correct email and password.");
 
                     return View(loginModel);            
