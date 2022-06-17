@@ -10,6 +10,8 @@ namespace Northwind.Security.Areas.Identity.Services
         public Task<ProcessedResponse> SendPasswordRecoveryLink(ForgotPasswordModel forgotPasswordModel);
         public Task<ProcessedResponse> ResetPassword(ResetPasswordModel resetPasswordModel);
         public Task<ProcessedResponse> ActivateAccount(ActivateAccountModel activateAccountModel);
+        Task<ProcessedResponse> GetUserAsync(string userId);
+        Task<ProcessedResponse> GetUsersAsync();
         public string GenerateRandomString(int stringLength = 10);
     }
 }

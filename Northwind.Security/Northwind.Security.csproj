@@ -28,6 +28,7 @@
 	<PackageReference Include="FluentEmail.Razor" Version="3.0.0" />
 	<PackageReference Include="FluentEmail.Smtp" Version="3.0.0" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="5.0.2" />
+    <PackageReference Include="Northwind.DataModels" Version="1.3.6" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="5.0.10" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.Design" Version="1.1.0" />
   </ItemGroup>

@@ -1,3 +1,4 @@
+using AutoMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -12,6 +13,7 @@ using Microsoft.IdentityModel.Tokens;
 using Northwind.Security.Areas.Identity.Data;
 using Northwind.Security.Areas.Identity.Services;
 using Northwind.Security.Authentication.JwtFeatures;
+using Northwind.Security.Helpers;
 using System;
 using System.Text;
 using System.Threading.Tasks;
@@ -44,6 +46,18 @@ namespace Northwind.Security
             services.AddScoped<IAuthenticationService, AuthenticationService>();
             services.AddScoped<IMailService, MailService>();
             services.AddScoped<JwtHandler>();
+
+            // Auto Mapper Configurations
+            var mapperConfig = new MapperConfiguration(mc =>
+            {
+                mc.AddProfile(new MappingProfile());
+            });
+
+            IMapper mapper = mapperConfig.CreateMapper();
+
+            services.AddSingleton(mapper);
+
+            // End Auto mapper config
 
             services.AddDbContext<NorthwindSecurityContext>(options =>
                     options.UseNpgsql(Configuration.GetConnectionString("NorthwindSecurityContextConnection")));

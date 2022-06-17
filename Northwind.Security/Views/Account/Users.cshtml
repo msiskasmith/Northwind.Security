@@ -1,0 +1,51 @@
+﻿@model IEnumerable<Northwind.Security.Areas.Identity.Data.ApplicationUser>
+
+@{
+    ViewData["Title"] = "Users";
+    Layout = "~/Views/Shared/_DashboardLayout.cshtml";
+}
+
+<h3>@ViewData["Title"]</h3>
+
+<p>
+
+    <a class="btn btn-primary" href="/Account/RegisterUser">Add User</a> 
+
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            
+            <th>
+                @Html.DisplayNameFor(model => model.FirstName)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.LastName)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.UserName)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            
+            <td>
+                @Html.DisplayFor(modelItem => item.FirstName)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.LastName)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.UserName)
+            </td>
+            <td>
+               <a class="btn btn-info" href="/Account/UserDetails?userId=@item.Id">View</a>
+               <a class="btn btn-danger" href="/Account/Delete?userId=@item.Id">Delete</a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>

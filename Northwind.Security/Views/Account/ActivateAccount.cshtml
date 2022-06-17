@@ -4,12 +4,11 @@
     ViewData["Title"] = "Activate Account";
     Layout = "~/Views/Shared/_AuthenticationLayout.cshtml";
 }
-
-        <p>Hi @Model.FirstName, Create a password and activate your account below</p>
         <form asp-action="ActivateAccount">
              @await Html.PartialAsync("_ModelStateErrorsPartial")
             
-             <p>Hi @Model.FirstName, Please create a password to confirm your account</p>
+            <p>Hi @Model.FirstName, Please create a password to confirm your account</p>
+
             <div class="form-group d-none">
                 <label asp-for="UserIdentifier" class="control-label"></label>
                 <input asp-for="UserIdentifier" class="form-control" />

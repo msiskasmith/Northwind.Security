@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -51,8 +52,8 @@ namespace Northwind.Security.Areas.Identity.Services
                     Email = registerModel.Username,
                     SecurityStamp = Guid.NewGuid().ToString(),
                     UserName = registerModel.Username,
-                    FirstName = registerModel.FirstName,
-                    LastName = registerModel.LastName
+                    FirstName = registerModel.UserFirstName,
+                    LastName = registerModel.UserLastName
                 };
 
                 var generatedPassword = GenerateRandomString();
@@ -83,15 +84,10 @@ namespace Northwind.Security.Areas.Identity.Services
                     // Create activation url
                     string activationUrl = 
                         $"{_urls.GetSection("BaseUrl").Value}{_urls.GetSection("ActivateAccountUrl").Value}" +
-                        $"firstname={applicationUser.FirstName}" +
+                        $"&firstname={applicationUser.FirstName}" +
                         $"&lastname={applicationUser.LastName}" +
-                        $"&useridentifier={encodedUsername}" +
-                        $"&token={encodedEmailToken}" +
-                        $"&response_type={registerModel.ResponseType}" +
-                        $"&client_id={registerModel.ClientId}" +
-                        $"&redirect_uri={registerModel.RedirectUri}" +
-                        $"&scope={registerModel.Scope}" +
-                        $"&state={registerModel.State}";
+                        $"&user_identifier={encodedUsername}" +
+                        $"&token={encodedEmailToken}";
 
                     var templatePath = Path.Combine(_hostEnvironment.ContentRootPath, "EmailTemplates"
                         , "ActivateAccount.cshtml");
@@ -243,6 +239,30 @@ namespace Northwind.Security.Areas.Identity.Services
 
             return ResponseProcessor.GetValidationErrorResponse(
                 "Password was not reset, please try again or contact your system administrator");
+        }
+
+        public async Task<ProcessedResponse> GetUserAsync(string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId); 
+
+            if(user is null)
+            {
+                return ResponseProcessor.GetRecordNotFoundResponse("The user does not exist.");
+            }
+
+            return ResponseProcessor.GetSuccessResponse(user);
+        }
+
+        public async Task<ProcessedResponse> GetUsersAsync()
+        {
+            var users = await _userManager.Users.ToListAsync();
+
+            if (users is null)
+            {
+                return ResponseProcessor.GetRecordNotFoundResponse("There are no users.");
+            }
+
+            return ResponseProcessor.GetSuccessResponse(users);
         }
 
         public string EncodeString(string stringToEncode)

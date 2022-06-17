@@ -17,6 +17,7 @@ namespace Northwind.Security.Models
         [MaxLength(50, ErrorMessage = "Confirm Password cannot be more than 50 characters.")]
         [DataType(DataType.Password)]
         [Display(Name = "Confirm New Password")]
+        [Compare("NewPassword", ErrorMessage = "New Password and confirmation password do not match.")]
         public string ConfirmNewPassword { get; set; }
 
         public string Token { get; set; }

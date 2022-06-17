@@ -33,11 +33,12 @@ namespace Northwind.Security.Areas.Identity.Services
             Email.DefaultSender = sender;
             Email.DefaultRenderer = new RazorRenderer();
 
-            var email = await Email.From($"{emailModel.MailFrom}")
-                                    .To($"{emailModel.MailTo}", emailModel.FullName)
+            var email = await Email.From(emailModel.MailFrom)
+                                    .To(emailModel.MailTo, emailModel.FullName)
                                     .Subject(emailModel.Subject)
                                     .UsingTemplateFromFile(templatePath, emailModel)
                                     .SendAsync();
+
             if (email.Successful)
             {
                 return ResponseProcessor.GetSuccessResponse();
