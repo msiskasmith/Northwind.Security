@@ -38,10 +38,6 @@ namespace Northwind.Security
             services.AddRazorPages();
 
             services.AddHttpClient();
-            services.AddHttpClient("authentication", (sp, c) =>
-            {
-                c.BaseAddress = new Uri(Configuration.GetValue<string>("apiLocation"));
-            });
 
             services.AddScoped<IAuthenticationService, AuthenticationService>();
             services.AddScoped<IMailService, MailService>();
@@ -94,7 +90,7 @@ namespace Northwind.Security
 
                             if (user is null)
                             {
-                                context.Fail("UnAuthorized ");
+                                context.Fail("UnAuthorized");
                             }                              
                             return Task.CompletedTask;
                         }

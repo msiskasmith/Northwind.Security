@@ -3,6 +3,7 @@ using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
@@ -13,6 +14,7 @@ using Northwind.Security.Areas.Identity.Services;
 using Northwind.Security.Authentication.JwtFeatures;
 using Northwind.Security.Models;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -25,12 +27,15 @@ namespace Northwind.Security.Controllers
         private readonly IConfiguration _configuration;
         private readonly JwtHandler _jwtHandler;
         private readonly IAuthenticationService _authenticationService;
+        private readonly RoleManager<IdentityRole> _roleManager;
 
         public AccountController(UserManager<ApplicationUser> userManager
             , SignInManager<ApplicationUser> signInManager
             , IConfiguration configuration
             , JwtHandler jwtHandler
             , IAuthenticationService authenticationService
+            , NorthwindSecurityContext northwindSecurityContext
+            , RoleManager<IdentityRole> roleManager
             )
         {
             _userManager = userManager;
@@ -38,6 +43,7 @@ namespace Northwind.Security.Controllers
             _configuration = configuration;
             _jwtHandler = jwtHandler;
             _authenticationService = authenticationService;
+            _roleManager = roleManager;
         }
 
         public IActionResult RegisterUser()
@@ -307,7 +313,7 @@ namespace Northwind.Security.Controllers
             return View(activateAccountModel);
         }
 
-        [Authorize]
+        
         public async Task<IActionResult> UserDetails([FromQuery] string userId)
         {
             var result = await _authenticationService.GetUserAsync(userId);
@@ -316,9 +322,16 @@ namespace Northwind.Security.Controllers
             {
                 var user = (ApplicationUser)result.Object;
 
-                var userRole = _userManager.GetRolesAsync(user);
+
+                var userRole = await _userManager.GetRolesAsync(user);
+
+                UserDetailsViewModel userDetailsViewModel = new()
+                {
+                    User = user,
+                    Role = userRole.First()
+                };
                 
-                return View(user);
+                return View(userDetailsViewModel);
             }
 
             NotifyUser("The requested user does not exist", "User Not Found", NotificationType.error);
@@ -354,6 +367,54 @@ namespace Northwind.Security.Controllers
             NotifyUser("The requested user does not exist", "User Not Found", NotificationType.error);
 
             return Redirect("/Home");
+        }
+
+        public async Task<IActionResult> EditUserRole([FromQuery] string userId)
+        {
+            var result = await _authenticationService.GetUserAsync(userId);
+
+            if (result.IsSuccessful)
+            {
+                var user = (ApplicationUser)result.Object;
+
+
+                var userRole = await _userManager.GetRolesAsync(user);
+
+                var roles = _roleManager.Roles;
+
+                EditUserRoleViewModel editUserRoleViewModel = new()
+                {
+                    User = user,
+                    UserRole = userRole.First(),
+                    Roles = roles                 
+                };
+
+                return View(editUserRoleViewModel);
+            }
+
+            NotifyUser("The requested user does not exist", "User Not Found", NotificationType.error);
+
+            return Redirect("/Account/Users");
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> EditUserRole(EditUserRoleViewModel editUserRoleViewModel)
+        {
+            var result = await _authenticationService.ChangeUserRoleAsync(editUserRoleViewModel.User, editUserRoleViewModel.UserRole);
+
+            if (result.IsSuccessful)
+            {
+                NotifyUser("The role was updated succesfully", "Role Updated", NotificationType.success);
+
+                return Redirect($"Account/UserDetails?userId={editUserRoleViewModel.User.Id}");
+            }
+
+            return View(editUserRoleViewModel);
+        }
+
+        public IActionResult AccessDenied()
+        {
+            return View();
         }
     }
 }

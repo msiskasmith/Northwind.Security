@@ -23,8 +23,9 @@ namespace Northwind.Security.Areas.Identity.Services
         }
         public async Task<ProcessedResponse> SendEmailAsync(EmailModel emailModel, string templatePath)
         {
-            var sender = new SmtpSender(() => new SmtpClient("localhost")
+            var sender = new SmtpSender(() => new SmtpClient(_smtpSettings.GetSection("Host").Value)
             {
+                Credentials = new System.Net.NetworkCredential(_smtpSettings.GetSection("UserName").Value, _smtpSettings.GetSection("Password").Value),
                 EnableSsl = Convert.ToBoolean(_smtpSettings.GetSection("EnableSsl").Value),
                 DeliveryMethod = SmtpDeliveryMethod.Network,
                 Port = Convert.ToInt32(_smtpSettings.GetSection("Port").Value)

@@ -265,6 +265,44 @@ namespace Northwind.Security.Areas.Identity.Services
             return ResponseProcessor.GetSuccessResponse(users);
         }
 
+        public async Task<ProcessedResponse> ChangeUserRoleAsync(ApplicationUser applicationUser, string newRoleName)
+        {
+            
+            var userRoles = await _userManager.GetRolesAsync(applicationUser);
+
+            var userRole = userRoles.First();
+
+            if (userRole != newRoleName)
+            {
+                using (var transaction = _northwindSecurityContext.Database.BeginTransaction())
+                {
+                    var result = await _userManager.RemoveFromRoleAsync(applicationUser, newRoleName);
+
+                    if (result.Succeeded)
+                    {
+                        result = await _userManager.AddToRoleAsync(applicationUser, newRoleName);
+
+                        if (result.Succeeded)
+                        {
+                            transaction.Commit();
+
+                            return ResponseProcessor.GetSuccessResponse();                          
+                        }
+
+                        transaction.Rollback();
+
+                        return ResponseProcessor.GetValidationErrorResponse("Something went wrong, please contact your System Administrator.");
+                    }
+
+                    transaction.Rollback();
+
+                    return ResponseProcessor.GetValidationErrorResponse("Something, please contact your System Administrator.");
+                }
+            }
+
+            return ResponseProcessor.GetValidationErrorResponse("The user already poccesses the role.");
+        }
+
         public string EncodeString(string stringToEncode)
         {
             var result = Encoding.UTF8.GetBytes(stringToEncode);
